@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>英検準1級 単語クイズ</title>
+<style>
+:root {
+  --primary: #4f46e5;
+  --correct: #059669;
+  --wrong: #dc2626;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ── ヘッダー ── */
+.hd {
+  background: var(--primary);
+  padding: 10px 16px 8px;
+  color: white;
+  flex-shrink: 0;
+}
+.hd-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.hd-title { font-size: 0.78rem; font-weight: 700; opacity: 0.9; line-height: 1.3; }
+.hd-qnum { font-size: 0.85rem; font-weight: 700; white-space: nowrap; margin-left: 8px; }
+.dots { display: flex; gap: 4px; }
+.dot { width: 22px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.3); transition: background 0.3s; }
+.dot.done-ok  { background: #6ee7b7; }
+.dot.done-ng  { background: #fca5a5; }
+.dot.current  { background: white; }
+
+/* ── メイン ── */
+main { flex: 1; display: flex; flex-direction: column; padding: 14px 12px; gap: 12px; }
+
+/* 単語カード */
+.word-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 22px 20px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.word-priority { font-size: 0.7rem; color: var(--primary); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px; }
+.word-review-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 1px 8px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.word-en { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1.2; }
+.word-phonetic { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+.word-pos { display: inline-block; margin-top: 8px; font-size: 0.7rem; background: #ede9fe; color: #6d28d9; padding: 2px 10px; border-radius: 20px; font-weight: 600; }
+
+/* 選択肢 */
+.choices { display: flex; flex-direction: column; gap: 9px; }
+.choice {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 15px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 56px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.choice:active { transform: scale(0.98); }
+.choice-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700; color: var(--muted);
+  flex-shrink: 0;
+}
+.choice.correct {
+  border-color: var(--correct);
+  background: #d1fae5;
+}
+.choice.correct .choice-num { background: var(--correct); color: white; }
+.choice.wrong {
+  border-color: var(--wrong);
+  background: #fee2e2;
+}
+.choice.wrong .choice-num { background: var(--wrong); color: white; }
+.choice.disabled { cursor: default; opacity: 0.5; }
+.choice.disabled:active { transform: none; }
+
+/* フィードバック */
+.feedback {
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+.feedback.show { display: flex; }
+.fb-correct { background: #d1fae5; border: 2px solid #6ee7b7; }
+.fb-wrong   { background: #fff7ed; border: 2px solid #fcd34d; }
+.fb-label { font-size: 0.9rem; font-weight: 800; }
+.fb-correct .fb-label { color: var(--correct); }
+.fb-wrong .fb-label   { color: #b45309; }
+.fb-answer { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.fb-tip-title { font-size: 0.75rem; font-weight: 700; color: #92400e; margin-top: 4px; }
+.fb-tip { font-size: 0.85rem; color: #78350f; line-height: 1.6; }
+.btn-next {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  box-shadow: 0 3px 10px rgba(79,70,229,0.3);
+}
+.btn-next:active { transform: scale(0.98); }
+
+/* ── 結果画面 ── */
+#screen-result {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 16px;
+  text-align: center;
+  overflow-y: auto;
+}
+.result-emoji { font-size: 3.5rem; margin-bottom: 8px; }
+.result-score { font-size: 2.2rem; font-weight: 800; color: var(--primary); }
+.result-sub { font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; }
+.result-cards { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.result-wrong-card {
+  background: white;
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-align: left;
+  border-left: 4px solid var(--wrong);
+}
+.rwc-en { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+.rwc-ja { font-size: 0.9rem; color: var(--text); margin: 2px 0; }
+.rwc-tip { font-size: 0.78rem; color: var(--muted); }
+.result-section-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); width: 100%; text-align: left; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.btn-start {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 16px;
+  background: var(--primary);
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(79,70,229,0.3);
+}
+.btn-start:active { transform: scale(0.98); }
+
+/* ── スタート画面 ── */
+#screen-start {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+}
+.start-logo { font-size: 3rem; margin-bottom: 12px; }
+.start-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-bottom: 4px; line-height: 1.4; }
+.start-date { font-size: 0.85rem; color: var(--muted); margin-bottom: 16px; }
+.start-desc { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 28px; }
+.start-stats {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.stat-item { text-align: center; }
+.stat-num { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+.stat-label { font-size: 0.7rem; color: var(--muted); }
+.review-notice {
+  width: 100%;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #92400e;
+  margin-bottom: 16px;
+  text-align: left;
+  display: none;
+}
+.review-notice.show { display: block; }
+
+/* ── お祝いオーバーレイ ── */
+#celebration-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+.balloon {
+  position: absolute;
+  bottom: -80px;
+  font-size: 2.5rem;
+  animation: balloonFloat linear forwards;
+  user-select: none;
+}
+@keyframes balloonFloat {
+  0%   { transform: translateY(0) rotate(-5deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(-110vh) rotate(5deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+.celebration-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 2.2rem;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 200;
+  animation: celebTextPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) 0.3s forwards;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+@keyframes celebTextPop {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+  60%  { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- お祝いオーバーレイ -->
+<div id="celebration-overlay"></div>
+
+<!-- スタート画面 -->
+<div id="screen-start">
+  <div class="start-logo">📚</div>
+  <div class="start-title">2026/05/31 英検準1級に向けて</div>
+  <div class="start-date">合格まで残り頑張ろう！</div>
+  <div class="start-desc">頻出単語を優先出題。<br>10問ずつ・4択でサクサク学べます。</div>
+  <div class="review-notice" id="review-notice"></div>
+  <div class="start-stats">
+    <div class="stat-item">
+      <div class="stat-num" id="stat-total-done">0</div>
+      <div class="stat-label">総回答数</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-rate">-</div>
+      <div class="stat-label">正答率</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-mastered">0</div>
+      <div class="stat-label">習得済み</div>
+    </div>
+  </div>
+  <button class="btn-start" onclick="startSet()">スタート →</button>
+</div>
+
+<!-- クイズ画面 -->
+<div id="screen-quiz" style="display:none; flex-direction:column; flex:1;">
+  <div class="hd">
+    <div class="hd-top">
+      <div class="hd-title">2026/05/31 英検準1級に向けて</div>
+      <div class="hd-qnum"><span id="q-current">1</span> / 10</div>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+  <main>
+    <div class="word-card">
+      <div class="word-review-badge" id="w-review-badge" style="display:none">🔁 復習</div>
+      <div class="word-priority" id="w-priority"></div>
+      <div class="word-en" id="w-en">-</div>
+      <div class="word-phonetic" id="w-phonetic"></div>
+      <div class="word-pos" id="w-pos"></div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback fb-correct" id="fb-correct">
+      <div class="fb-label">✅ 正解！</div>
+      <div class="fb-answer" id="fb-correct-ans"></div>
+    </div>
+    <div class="feedback fb-wrong" id="fb-wrong">
+      <div class="fb-label">❌ 不正解</div>
+      <div class="fb-answer" id="fb-wrong-ans"></div>
+      <div class="fb-tip-title">💡 覚え方</div>
+      <div class="fb-tip" id="fb-tip"></div>
+      <button class="btn-next" onclick="nextQuestion()">次の問題 →</button>
+    </div>
+  </main>
+</div>
+
+<!-- 結果画面 -->
+<div id="screen-result"></div>
+
+<script>
+// =============================================
+//  単語データ
+//  priority: 1=最頻出 / 2=頻出 / 3=標準
+//  tip: 覚え方（語源・語呂合わせ）
+// =============================================
+const WORDS = [
+  // ── Priority 1: 最頻出 ──
+  {id:1, en:"elaborate",     pos:"形",  ja:"精巧な・詳細な",      phonetic:"/ilǽbərət/",   priority:1, tip:"e+labor(労働)+ate → 労働を重ねて作り込んだ → 精巧な"},
+  {id:2, en:"facilitate",    pos:"動",  ja:"促進する・容易にする", phonetic:"/fəsílətèit/", priority:1, tip:"facil=「簡単」(facility と同語源) → 簡単にする → 促進する"},
+  {id:3, en:"inevitable",    pos:"形",  ja:"避けられない",         phonetic:"/inévitəbl/",  priority:1, tip:"in(否定)+evit(避ける)+able → 避けることができない"},
+  {id:4, en:"ambiguous",     pos:"形",  ja:"曖昧な・多義的な",    phonetic:"/æmbígjuəs/",  priority:1, tip:"ambi(両方)+ag(動く) → 両方向に動ける → どちらとも取れる"},
+  {id:5, en:"reluctant",     pos:"形",  ja:"気が進まない・渋々の", phonetic:"/rilʌ́ktənt/",  priority:1, tip:"re(抵抗)+luct(戦う) → 心が抵抗して戦っている → 気が進まない"},
+  {id:6, en:"vulnerable",    pos:"形",  ja:"傷つきやすい・脆弱な", phonetic:"/vʌ́lnərəbl/",  priority:1, tip:"vulner(傷)+able → 傷をつけられやすい → 脆弱な"},
+  {id:7, en:"deteriorate",   pos:"動",  ja:"悪化する・劣化する",   phonetic:"/ditíəriərèit/",priority:1, tip:"deterior(より悪い)+ate → どんどん悪くなっていく"},
+  {id:8, en:"substantial",   pos:"形",  ja:"かなりの・実質的な",   phonetic:"/səbstǽnʃəl/", priority:1, tip:"sub(下)+stan(立つ) → しっかり土台がある → かなりの量"},
+  {id:9, en:"alleviate",     pos:"動",  ja:"和らげる・軽減する",   phonetic:"/əlíːvièit/",  priority:1, tip:"al+levi(軽い)+ate → 軽くする → 痛みを和らげる"},
+  {id:10,en:"advocate",      pos:"動",  ja:"主張する・支持する",   phonetic:"/ǽdvəkèit/",  priority:1, tip:"ad(向かって)+voc(声)+ate → 声を上げる → 主張する"},
+  {id:11,en:"mitigate",      pos:"動",  ja:"和らげる・軽減する",   phonetic:"/mítəgèit/",   priority:1, tip:"mit(優しく)+gate → 優しくする → 影響を和らげる"},
+  {id:12,en:"scrutinize",    pos:"動",  ja:"精査する・詳しく調べる",phonetic:"/skrúːtənàiz/",priority:1, tip:"scrutin(ふるい)+ize → ふるいにかけて調べる → 精査する"},
+  {id:13,en:"skeptical",     pos:"形",  ja:"懐疑的な・疑い深い",   phonetic:"/sképtikəl/",  priority:1, tip:"skeptomai(調べる) → 疑って何度も調べる → 懐疑的"},
+  {id:14,en:"pragmatic",     pos:"形",  ja:"実用的な・現実的な",   phonetic:"/præɡmǽtik/",  priority:1, tip:"pragma(行為・実行) → 実行に基づく → 実用的"},
+  {id:15,en:"persist",       pos:"動",  ja:"持続する・固執する",   phonetic:"/pərsíst/",    priority:1, tip:"per(通して)+sist(立つ) → ずっと立ち続ける → 持続する"},
+  {id:16,en:"suppress",      pos:"動",  ja:"抑制する・鎮圧する",   phonetic:"/səprés/",     priority:1, tip:"sub(下)+press(押す) → 下に押さえ込む → 抑制する"},
+  {id:17,en:"undermine",     pos:"動",  ja:"損なう・徐々に弱める", phonetic:"/ʌ̀ndərmáin/",  priority:1, tip:"under+mine(掘る) → 下から掘り崩す → じわじわ損なう"},
+  {id:18,en:"enhance",       pos:"動",  ja:"高める・向上させる",   phonetic:"/inhǽns/",     priority:1, tip:"en+hance(高い) → 高くする → 価値・性能を高める"},
+  {id:19,en:"prejudice",     pos:"名",  ja:"偏見・先入観",         phonetic:"/prédʒədis/",  priority:1, tip:"pre(前)+judic(判断) → 前もって判断する → 偏見"},
+  {id:20,en:"contemplate",   pos:"動",  ja:"熟考する・考察する",   phonetic:"/kɑ́ntəmplèit/",priority:1, tip:"con+temple(神殿) → 神殿で静かに考える → 熟考する"},
+  // ── Priority 2: 頻出 ──
+  {id:21,en:"eloquent",      pos:"形",  ja:"雄弁な・表現力豊かな", phonetic:"/éləkwənt/",   priority:2, tip:"e+loqu(話す)+ent → うまく流れるように話す → 雄弁な"},
+  {id:22,en:"fluctuate",     pos:"動",  ja:"変動する・上下する",   phonetic:"/flʌ́ktʃuèit/", priority:2, tip:"fluct(流れる)+ate → 波のように流れて上下する → 変動"},
+  {id:23,en:"inherent",      pos:"形",  ja:"固有の・本来備わった", phonetic:"/inhíərənt/",   priority:2, tip:"in+her(くっつく)+ent → 内側にくっついて離れない → 固有の"},
+  {id:24,en:"versatile",     pos:"形",  ja:"多才な・多目的の",     phonetic:"/vəːrsətl/",    priority:2, tip:"vers(回す)+atile → いろいろな方向に回せる → 多才な"},
+  {id:25,en:"spontaneous",   pos:"形",  ja:"自発的な・自然発生的な",phonetic:"/spɑntéiniəs/", priority:2, tip:"spont(自ら意志)+aneous → 自ら起こる → 自発的"},
+  {id:26,en:"exaggerate",    pos:"動",  ja:"誇張する・大げさに言う",phonetic:"/iɡzǽdʒərèit/",priority:2, tip:"ex(外へ)+agger(山積み) → 山盛りにして外に出す → 誇張"},
+  {id:27,en:"accumulate",    pos:"動",  ja:"蓄積する・積み重ねる", phonetic:"/əkjúːmjulèit/",priority:2, tip:"ac+cumul(山)+ate → 山を積み上げていく → 蓄積する"},
+  {id:28,en:"discriminate",  pos:"動",  ja:"差別する・区別する",   phonetic:"/diskrímənèit/",priority:2, tip:"dis+crimin(分ける)+ate → 分け隔てをする → 差別する"},
+  {id:29,en:"collaborate",   pos:"動",  ja:"協力する・共同作業する",phonetic:"/kəlǽbərèit/", priority:2, tip:"co(共に)+labor(働く)+ate → 一緒に働く → 協力する"},
+  {id:30,en:"constitute",    pos:"動",  ja:"構成する・成り立つ",   phonetic:"/kɑ́nstətjùːt/",priority:2, tip:"con+stit(立てる)+ute → 一緒に立て上げる → 構成する"},
+  {id:31,en:"demonstrate",   pos:"動",  ja:"実証する・示す",       phonetic:"/démənstrèit/", priority:2, tip:"de+monstr(示す)+ate → 明確に見せる → 実証する"},
+  {id:32,en:"anticipate",    pos:"動",  ja:"予期する・予測する",   phonetic:"/æntísəpèit/",  priority:2, tip:"anti(前)+cip(取る)+ate → 前もって取っておく → 予期する"},
+  {id:33,en:"compensate",    pos:"動",  ja:"補償する・埋め合わせる",phonetic:"/kɑ́mpənsèit/", priority:2, tip:"com+pens(重さ)+ate → 重さをつり合わせる → 補償する"},
+  {id:34,en:"profound",      pos:"形",  ja:"深い・深遠な",         phonetic:"/prəfáund/",    priority:2, tip:"pro(深く)+found(底) → 深い底まで達する → 深遠な"},
+  {id:35,en:"reinforce",     pos:"動",  ja:"強化する・補強する",   phonetic:"/rìːinfɔ́ːrs/",  priority:2, tip:"re+in+force(力) → 力をもう一度入れる → 強化する"},
+  {id:36,en:"withstand",     pos:"動",  ja:"耐える・持ちこたえる", phonetic:"/wiðstǽnd/",    priority:2, tip:"with(抵抗して)+stand(立つ) → 抵抗して立ち続ける → 耐える"},
+  {id:37,en:"abolish",       pos:"動",  ja:"廃止する・撤廃する",   phonetic:"/əbɑ́liʃ/",     priority:2, tip:"ab(離れる)+ol(育てる) → 育てたものを引き離す → 廃止"},
+  {id:38,en:"allocate",      pos:"動",  ja:"割り当てる・配分する", phonetic:"/ǽləkèit/",    priority:2, tip:"al+loc(場所)+ate → それぞれの場所を決める → 配分する"},
+  {id:39,en:"benevolent",    pos:"形",  ja:"慈悲深い・親切な",     phonetic:"/bənévələnt/",  priority:2, tip:"bene(良い)+vol(望む)+ent → 人の良いことを望む → 慈悲深い"},
+  {id:40,en:"candid",        pos:"形",  ja:"率直な・正直な",       phonetic:"/kǽndid/",     priority:2, tip:"candid(輝く白) → 白日の下にさらす → 隠さず率直な"},
+  // ── Priority 3: 標準 ──
+  {id:41,en:"arduous",       pos:"形",  ja:"困難な・骨の折れる",   phonetic:"/ɑ́ːrdʒuəs/",   priority:3, tip:"ard(燃えるように熱い)+uous → 燃えるほど苦しい → 困難な"},
+  {id:42,en:"obsolete",      pos:"形",  ja:"時代遅れの・廃れた",   phonetic:"/ɑ̀bsəlíːt/",   priority:3, tip:"ob+solete(使われた) → すでに使い古された → 時代遅れ"},
+  {id:43,en:"pursue",        pos:"動",  ja:"追求する・追いかける", phonetic:"/pərsjúː/",     priority:3, tip:"pur(前に)+sue(行く) → 前を追いかける → 追求する"},
+  {id:44,en:"abundant",      pos:"形",  ja:"豊富な・たくさんの",   phonetic:"/əbʌ́ndənt/",   priority:3, tip:"ab+und(波)+ant → 波がうねってあふれる → 豊富な"},
+  {id:45,en:"conceal",       pos:"動",  ja:"隠す・秘密にする",     phonetic:"/kənsíːl/",    priority:3, tip:"con+ceal(隠す) → 完全に覆い隠す → 秘密にする"},
+  {id:46,en:"equivalent",    pos:"形",  ja:"同等の・相当する",     phonetic:"/ikwívələnt/",  priority:3, tip:"equi(等しい)+val(価値)+ent → 等しい価値を持つ → 同等の"},
+  {id:47,en:"legitimate",    pos:"形",  ja:"正当な・合法的な",     phonetic:"/lidʒítəmit/",  priority:3, tip:"legit(法律)+imate → 法律に合っている → 正当な"},
+  {id:48,en:"modify",        pos:"動",  ja:"修正する・変更する",   phonetic:"/mɑ́dəfài/",    priority:3, tip:"mod(様式)+ify → 様式を変える → 修正する"},
+  {id:49,en:"acknowledge",   pos:"動",  ja:"認める・認識する",     phonetic:"/æknɑ́lidʒ/",   priority:3, tip:"ac+knowledge(知識) → 知識として受け入れる → 認める"},
+  {id:50,en:"assess",        pos:"動",  ja:"評価する・査定する",   phonetic:"/əsés/",       priority:3, tip:"as+sess(座る) → 評価者が腰を据えて判断 → 評価する"},
+  {id:51,en:"infer",         pos:"動",  ja:"推論する・推測する",   phonetic:"/infəːr/",     priority:3, tip:"in+fer(運ぶ) → 内側に証拠を運んで考える → 推論する"},
+  {id:52,en:"manifest",      pos:"形",  ja:"明らかな・明白な",     phonetic:"/mǽnəfèst/",   priority:3, tip:"mani(手)+fest(打つ) → 手で触れるほど明らか → 明白な"},
+  {id:53,en:"endeavor",      pos:"動",  ja:"努力する・尽力する",   phonetic:"/endévər/",    priority:3, tip:"en+devoir(義務) → 義務を果たそうと努力する"},
+  {id:54,en:"comply",        pos:"動",  ja:"従う・応じる",         phonetic:"/kəmplái/",    priority:3, tip:"com+ply(満たす) → 要求を満たす → 規則に従う"},
+  {id:55,en:"tedious",       pos:"形",  ja:"退屈な・うんざりする", phonetic:"/tíːdiəs/",    priority:3, tip:"taedium(嫌悪・飽き飽き) → うんざりするほど長い → 退屈"},
+  {id:56,en:"trivial",       pos:"形",  ja:"些細な・取るに足らない",phonetic:"/tríviəl/",    priority:3, tip:"tri(三)+via(道) → 三叉路の立ち話 → どうでもいい話"},
+  {id:57,en:"attribute",     pos:"動",  ja:"（原因を）帰する・認める",phonetic:"/ǽtribjùːt/",priority:3, tip:"at+tribute(与える) → 原因として与える → ～のせいにする"},
+  {id:58,en:"predominant",   pos:"形",  ja:"支配的な・主要な",     phonetic:"/pridɑ́mənənt/", priority:3, tip:"pre(前に)+domin(支配)+ant → 前から支配している → 主要な"},
+  {id:59,en:"conceive",      pos:"動",  ja:"考え出す・思いつく",   phonetic:"/kənsíːv/",    priority:3, tip:"con+ceive(取る) → 心の中に取り込む → アイデアを生む"},
+  {id:60,en:"notion",        pos:"名",  ja:"概念・考え・見解",     phonetic:"/nóuʃən/",     priority:3, tip:"not(知る)+ion → 知っていること・頭の中の考え → 概念"},
+];
+
+// ─── ストレージ ───
+const KEY = 'eiken_quiz_v2';
+function loadData() {
+  try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch(e) {}
+  return { correct:{}, wrong:{}, pendingReview:[] };
+}
+function saveData() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+let data = loadData();
+if (!data.pendingReview) data.pendingReview = [];
+
+function getScore(w) {
+  const c = data.correct[w.id] || 0;
+  const ng = data.wrong[w.id] || 0;
+  return (4 - w.priority) * 20 + ng * 5 - c * 3;
+}
+
+// ─── ゲーム状態 ───
+let currentSet = [];
+let qIndex = 0;
+let results = [];
+let autoTimer = null;
+let reviewIds = new Set(); // 今セットの復習対象ID
+
+// ─── スタート画面の統計更新 ───
+function updateStartStats() {
+  const totalC = Object.values(data.correct).reduce((a,b)=>a+b,0);
+  const totalW = Object.values(data.wrong).reduce((a,b)=>a+b,0);
+  const total = totalC + totalW;
+  const rate = total > 0 ? Math.round(totalC/total*100)+'%' : '-';
+  const mastered = WORDS.filter(w => (data.correct[w.id]||0) >= 3 && (data.wrong[w.id]||0) === 0).length;
+  document.getElementById('stat-total-done').textContent = total;
+  document.getElementById('stat-rate').textContent = rate;
+  document.getElementById('stat-mastered').textContent = mastered;
+
+  const pending = data.pendingReview.length;
+  const notice = document.getElementById('review-notice');
+  if (pending > 0) {
+    notice.textContent = `🔁 前回間違えた単語が ${pending} 語あります。今回のセットで復習します！`;
+    notice.classList.add('show');
+  } else {
+    notice.classList.remove('show');
+  }
+}
+
+// ─── セット開始 ───
+function startSet() {
+  // 復習対象を最大5語取り出す
+  const reviewWords = data.pendingReview
+    .slice(0, 5)
+    .map(id => WORDS.find(w => w.id === id))
+    .filter(Boolean);
+  reviewIds = new Set(reviewWords.map(w => w.id));
+
+  // 残りを重み付きランダムで補充
+  const reviewIdSet = new Set(reviewWords.map(w => w.id));
+  const sorted = [...WORDS]
+    .filter(w => !reviewIdSet.has(w.id))
+    .sort((a,b) => getScore(b) - getScore(a));
+  const pool = sorted.slice(0, Math.min(30, sorted.length));
+  const fill = shuffle(pool).slice(0, 10 - reviewWords.length);
+
+  currentSet = shuffle([...reviewWords, ...fill]);
+  qIndex = 0;
+  results = [];
+
+  document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'none';
+  const qScreen = document.getElementById('screen-quiz');
+  qScreen.style.display = 'flex';
+
+  showQuestion();
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// ─── ドット更新 ───
+function updateDots() {
+  const container = document.getElementById('dots');
+  container.innerHTML = Array.from({length:10}, (_,i) => {
+    let cls = 'dot';
+    if (i < results.length) cls += results[i] ? ' done-ok' : ' done-ng';
+    else if (i === qIndex) cls += ' current';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+}
+
+// ─── 問題表示 ───
+function showQuestion() {
+  if (qIndex >= currentSet.length) { showResult(); return; }
+
+  const w = currentSet[qIndex];
+  const isReview = reviewIds.has(w.id);
+
+  document.getElementById('q-current').textContent = qIndex + 1;
+  document.getElementById('w-en').textContent = w.en;
+  document.getElementById('w-phonetic').textContent = w.phonetic;
+  document.getElementById('w-pos').textContent = w.pos + '詞';
+  document.getElementById('w-priority').textContent =
+    w.priority === 1 ? '⭐ 最頻出' : w.priority === 2 ? '📌 頻出' : '📚 標準';
+
+  const badge = document.getElementById('w-review-badge');
+  badge.style.display = isReview ? 'inline-block' : 'none';
+
+  const others = shuffle(WORDS.filter(x => x.id !== w.id)).slice(0, 3);
+  const choices = shuffle([w, ...others]);
+  const correctIdx = choices.indexOf(w);
+
+  const container = document.getElementById('choices');
+  container.innerHTML = choices.map((c, i) =>
+    `<button class="choice" onclick="answer(${i}, ${correctIdx})" id="choice-${i}">
+      <div class="choice-num">${i+1}</div>
+      <div>${c.ja}</div>
+    </button>`
+  ).join('');
+
+  document.getElementById('fb-correct').classList.remove('show');
+  document.getElementById('fb-wrong').classList.remove('show');
+  updateDots();
+  if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+}
+
+// ─── 回答処理 ───
+function answer(selected, correct) {
+  document.querySelectorAll('.choice').forEach(b => b.classList.add('disabled'));
+
+  const isCorrect = selected === correct;
+  const w = currentSet[qIndex];
+
+  document.getElementById(`choice-${correct}`).classList.add('correct');
+  if (!isCorrect) document.getElementById(`choice-${selected}`).classList.add('wrong');
+
+  if (isCorrect) {
+    data.correct[w.id] = (data.correct[w.id] || 0) + 1;
+    results.push(true);
+    // 正解したら復習キューから削除
+    data.pendingReview = data.pendingReview.filter(id => id !== w.id);
+    document.getElementById('fb-correct-ans').textContent = w.ja;
+    document.getElementById('fb-correct').classList.add('show');
+    updateDots();
+    saveData();
+    autoTimer = setTimeout(nextQuestion, 1200);
+  } else {
+    data.wrong[w.id] = (data.wrong[w.id] || 0) + 1;
+    results.push(false);
+    // 不正解なら復習キューに追加（重複しないように）
+    if (!data.pendingReview.includes(w.id)) {
+      data.pendingReview.push(w.id);
+    }
+    document.getElementById('fb-wrong-ans').textContent = '正解：' + w.ja;
+    document.getElementById('fb-tip').textContent = w.tip;
+    document.getElementById('fb-wrong').classList.add('show');
+    updateDots();
+    saveData();
+  }
+}
+
+// ─── 次の問題 ───
+function nextQuestion() {
+  if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+  qIndex++;
+  showQuestion();
+}
+
+// ─── お祝いエフェクト ───
+function celebrate(score) {
+  const overlay = document.getElementById('celebration-overlay');
+  overlay.innerHTML = '';
+
+  if (score === 8) {
+    // 風船が飛ぶ
+    const balloons = ['🎈','🎈','🎈','🎉','🎈'];
+    balloons.forEach((b, i) => {
+      const el = document.createElement('div');
+      el.className = 'balloon';
+      el.textContent = b;
+      el.style.left = (15 + i * 18) + '%';
+      el.style.animationDuration = (2.5 + Math.random() * 1.5) + 's';
+      el.style.animationDelay = (i * 0.2) + 's';
+      overlay.appendChild(el);
+    });
+    setTimeout(() => { overlay.innerHTML = ''; }, 5000);
+
+  } else if (score === 9) {
+    // 紙吹雪 + Excellent!
+    launchConfetti(60);
+    const text = document.createElement('div');
+    text.className = 'celebration-text';
+    text.innerHTML = '🌟 Excellent! 🌟<br><span style="font-size:1.2rem">9問正解！すごい！</span>';
+    text.style.color = '#f59e0b';
+    text.style.webkitTextStroke = '1px #92400e';
+    document.body.appendChild(text);
+    setTimeout(() => {
+      text.remove();
+      overlay.innerHTML = '';
+    }, 3500);
+
+  } else if (score === 10) {
+    // 大量紙吹雪 + Congratulations!
+    launchConfetti(120);
+    // 2波目
+    setTimeout(() => launchConfetti(80), 800);
+    const text = document.createElement('div');
+    text.className = 'celebration-text';
+    text.innerHTML = '🏆 Congratulations! 🏆<br><span style="font-size:1.1rem">全問正解！完璧です！</span>';
+    text.style.color = '#ffffff';
+    text.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+    text.style.padding = '20px 28px';
+    text.style.borderRadius = '20px';
+    text.style.boxShadow = '0 8px 32px rgba(102,126,234,0.5)';
+    text.style.webkitTextStroke = '0';
+    document.body.appendChild(text);
+    setTimeout(() => {
+      text.remove();
+      overlay.innerHTML = '';
+    }, 4000);
+  }
+}
+
+function launchConfetti(count) {
+  const overlay = document.getElementById('celebration-overlay');
+  const colors = ['#f43f5e','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.top = '-10px';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.width = (6 + Math.random() * 8) + 'px';
+    el.style.height = (6 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    el.style.animationDuration = (2 + Math.random() * 2) + 's';
+    el.style.animationDelay = Math.random() * 1.5 + 's';
+    overlay.appendChild(el);
+  }
+  setTimeout(() => { overlay.innerHTML = ''; }, 5000);
+}
+
+// ─── 結果画面 ───
+function showResult() {
+  document.getElementById('screen-quiz').style.display = 'none';
+  const correctCount = results.filter(Boolean).length;
+  const wrongWords = currentSet.filter((_,i) => !results[i]);
+
+  // お祝いエフェクト
+  if (correctCount >= 8) {
+    setTimeout(() => celebrate(correctCount), 400);
+  }
+
+  const emoji = correctCount === 10 ? '🏆' : correctCount >= 9 ? '🌟' : correctCount >= 8 ? '🎉' : correctCount >= 7 ? '👍' : correctCount >= 5 ? '💪' : '🔥';
+  const msg   = correctCount === 10 ? '完璧！全問正解！' : correctCount >= 9 ? 'あと1問！惜しい！' : correctCount >= 8 ? 'よくできました！' : correctCount >= 7 ? 'もう一歩！着実に積み上がってるよ！' : correctCount >= 5 ? '今日の間違いが明日の武器になる！' : 'ここから巻き返せる！毎回やるだけで違う！';
+  const cheers = correctCount <= 7 ? `<div style="margin:8px 0 16px;padding:14px 16px;background:linear-gradient(135deg,#ede9fe,#dbeafe);border-radius:14px;font-size:0.88rem;color:#3730a3;font-weight:600;line-height:1.6">
+    ${correctCount === 7 ? '⭐ 7割は合格圏まであと一息！<br>復習を重ねれば必ず超えられる！' : correctCount >= 5 ? '📖 間違えた単語こそ宝物。<br>覚え方を読んで次は正解しよう！' : '🌱 最初からできる人はいない。<br>毎回やることが一番の近道！'}
+  </div>` : '';
+
+  const pendingCount = data.pendingReview.length;
+  const reviewMsg = pendingCount > 0
+    ? `<div style="margin:12px 0;padding:10px 14px;background:#fef3c7;border-radius:12px;font-size:0.82rem;color:#92400e;text-align:left">🔁 次のセットで <strong>${pendingCount} 語</strong>を復習します</div>`
+    : '';
+
+  const wrongCards = wrongWords.length > 0
+    ? `<div class="result-section-title">間違えた単語</div>
+       <div class="result-cards">
+         ${wrongWords.map(w => `
+           <div class="result-wrong-card">
+             <div class="rwc-en">${w.en} <span style="font-size:0.8rem;color:var(--muted)">${w.phonetic}</span></div>
+             <div class="rwc-ja">${w.ja}</div>
+             <div class="rwc-tip">💡 ${w.tip}</div>
+           </div>`).join('')}
+       </div>`
+    : '<div style="color:var(--correct);font-weight:700;margin-bottom:16px">🎊 全問正解！素晴らしい！</div>';
+
+  const resultEl = document.getElementById('screen-result');
+  resultEl.innerHTML = `
+    <div class="result-emoji">${emoji}</div>
+    <div class="result-score">${correctCount} <span style="font-size:1.2rem;color:var(--muted)">/ 10</span></div>
+    <div class="result-sub">${msg}</div>
+    ${cheers}
+    ${reviewMsg}
+    ${wrongCards}
+    <button class="btn-start" onclick="startSet()">次の10問へ →</button>
+  `;
+  resultEl.style.display = 'flex';
+  resultEl.style.flexDirection = 'column';
+  resultEl.style.alignItems = 'center';
+  resultEl.style.padding = '24px 16px';
+  resultEl.style.overflowY = 'auto';
+  updateStartStats();
+}
+
+// ─── 初期化 ───
+updateStartStats();
+</script>
+</body>
+</html>
